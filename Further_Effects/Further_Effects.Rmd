@@ -37,3 +37,36 @@ study_dat[3,]
 study_dat$x1[4]
 ```
 
+## Fixed- vs Random-effects
+### Reminder of simple meta-analysis and forest plot
+First, a quick revision of some basic concepts. Meta-analysis is basically a weighted average of standardised effect sizes. We need to use standardised effect sizes as different studies may have used different measures, units etc. and so standardising by the pooled standard deviation makes them easier to compare. The weights are derived from the sample size and variation in each study. Forest plots provide a simple summary of a meta-analysis; here is the example from [the earlier website](https://naturalandenvironmentalscience.shinyapps.io/Effectsizes/#section-interactive-forest-plot-of-meta-analysis), taken from Borenstein:
+
+![](www/forest_fig_1.png){width=75%}
+
+Here the squares represent the standardised effect size for the individual studies and the size of the squares their weights. The diamond represents the overall weighted average of the effect size, and the width of the diamond represents the degree of uncertaintity about the overall estimate.
+
+### Fixed-effects meta-analysis
+In a fixed effect analysis, all the studies are assumed to have the same ‘true’ effect, and all the factors that could influence the effect size are the same in all the studies. However, there is still sampling error, which is reflected in the different results for each study The study weights are assigned as the inverse of the variance of each study. This can be summed up in the following diagram:
+
+![](www/fixed_fig_11_1_11_2.png){width=75%}
+
+So the key point with a fixed-effect model is that the observed effect $Y_i$ for any given study $i$ is:
+
+$$Y_i = \theta + \epsilon_i$$
+where $\theta$ (Greek letter _theta_) is the overall "population" mean and $\epsilon_i$ (Greek letter _epsilon_) is the sampling error (which might be positive or negative). Have a look at [this  website](https://naturalandenvironmentalscience.shinyapps.io/Effectsizes/#section-populations-and-samples) to remind yourself of populations and samples.
+
+### Random effects models
+One problem with the fixed-effect method is that it assumes that all the studies are identical, and that the real effect size is the same in all the studies. Of course in reality this is unlikely to be true. The underlying effect sizes are likely to differ.  For example, survival of an endangered mammal population as a result of a management intervention may partly depend on the age of the mammals in the different populations in each of the different studies, as well as the actual management intervention. The diagram below shows the true effect sizes (0.55, 0.65 and 0.50) in three studies, assuming no observation error whatsoever, $\delta_1$, $\delta_2$ and $\delta_3$. The curve represents the normal distribution around all true effects.
+
+![](www/rand_effect_fig_12_2.png){width=75%}
+
+Of course in reality, there is observation error, so for our third study there is both the sampling error, shown as $\epsilon_3$ below which is the difference of what was observed, $Y_3$ and the true effect size $\delta_3$ in that study. The study effect size differs from the overall effect size for all studies by $\zeta_3$ as shown below:
+
+![](www/rand_effect_fig_12_3.png){width=75%}
+
+So, we can say that the observed effect $Y_i$ for any study is given by the grand mean $\mu$ (Greek letter _mu_), the deviation of the study's true effect from the grand mean $\zeta_i$ (Greek letter _zeta_), and the sampling error in that study $\epsilon_i$ (Greek letter _epsilon_):
+
+$$Y_i = \mu + \zeta_i + \epsilon_i$$
+This equation covers both within-study variation $\epsilon_i$ and between-study variation $\zeta_i$.
+
+
