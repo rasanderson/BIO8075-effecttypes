@@ -189,3 +189,62 @@ cbind(J, d, g, Vd, Vg)
 
 You can see from the above that the bias-correction values, _J_ are all near 1.0, but it is lower for the 3rd study, which has the smallest number of samples.  Values of J near to 1.0 indicate that less bias-correction is needed.
 
+## Manual calculation of meta-analysis
+### Overall weights W
+Remember that in a meta-analysis you are basically calculating a weighted mean of the effect sizes, here the standardised mean differences as represented by Hedge's _g_, for the individual studies from your systematic review. 
+
+Now that we have calculated the bias-corrected variance $V_g$ we can readily calculate the weight _W_ for an individual study:
+
+$$W = \frac{1}{V_{g}}$$
+
+Again, this is very simple to calculate for all the studies simultaneously using R's vectorised arithmetic:
+
+```{r weights_all_studies-setup}
+J <- 1 - (3 / (4 * (continuous_dat$T_n + continuous_dat$C_n - 2) -1))
+g <- J * d
+Vd <- (continuous_dat$T_n+continuous_dat$C_n)/(continuous_dat$T_n*continuous_dat$C_n) +
+   d^2/(2*(continuous_dat$T_n+continuous_dat$C_n))
+Vg <- J^2 * Vd
+
+```
+
+```{r weights_all_studies, exercise=TRUE}
+W <- 1 / Vg
+cbind(continuous_dat$T_n, Vd, W)
+
+```
+
+Notice how the weights are related to the sample size and the variance, so for example study 4, which has 200 replicates per treatment, has a weight much higher than the others. The lowest weight is, however, given to study 4, within only 40 replicates, and the highest variance.
+
+To finish, we calculate the weighted mean, _M_, based on the sum of weights multipled by the standardised effect sizes, divided by the sum of the weights:
+
+$$M = \frac{\sum_{i=1}^{k}W_ig_i}{\sum_{i=1}^{k}W_i}$$
+where:
+
+* $W_i$ are the weights for study number $1$ to study number $k$
+* $g_i$ are the Hedge's _g_ for each study
+* $\sum$ Greek letter (sigma) for sum
+
+This equation may look threatening at first, but it simply indicates that for each study (i = 1 to k, where k is 6 for this example) we carry out multiplications and additions.  The $\sum_{}$ sign indicates summation.  Again, the whole set of calculations can easily be done in R via vectorised arithmetic:
+
+```{r calc_M-setup}
+S_within <- sqrt(((continuous_dat$T_n-1)*continuous_dat$T_SD^2 +
+                   (continuous_dat$C_n-1)*continuous_dat$C_SD^2) / 
+                   (continuous_dat$T_n + continuous_dat$C_n -2))
+d       <- (continuous_dat$T_mean - continuous_dat$C_mean) / S_within
+
+J <- 1 - (3 / (4 * (continuous_dat$T_n + continuous_dat$C_n - 2) -1))
+g <- J * d
+Vd <- (continuous_dat$T_n+continuous_dat$C_n)/(continuous_dat$T_n*continuous_dat$C_n) +
+   d^2/(2*(continuous_dat$T_n+continuous_dat$C_n))
+Vg <- J^2 * Vd
+W <- 1 / Vg
+```
+
+```{r calc_M, exercise=TRUE}
+M <- sum(W * g) / sum(W)
+M
+
+```
+
+This gives an **overall standardised mean difference**, weighted for the different studies.
