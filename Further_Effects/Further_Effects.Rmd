@@ -1,0 +1,39 @@
+---
+title: "Manual calculation of effect sizes and meta-analysis"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(metafor)
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+## Introduction
+This website introduces you to two types of meta-analysis, **fixed-effects** and **random-effects** analysis, and also shows you how to calculate effect sizes manually, and hence the mechanics of a simple meta-analysis. In most of this module you will use automatic methods to calculate effect sizes and do the meta-analysis, but doing some of the basics manually will give you a better understanding. Finally, we address the problem that when you are collating information from several different studies they may not all report the information in the same way. For example one paper may have the means, standard errors and sample sizes, making it easy to calculate the standardised mean differences. However, another might report means, t-statistics and p-values. These cannot all be analysed automatically until they are converted to the same format.
+
+To do this you need to understand more about the mechanics of calculating effect sizes, which (sorry!) results in a few equations to work through in this website.
+
+### Vectorised arithmetic
+Manual calculation of effect sizes is made easier by R's **vectorised arithmetic** which means that you can apply the same  calculation to every element in a table of data. For example, the following code block contains a `data.frame` called `study_dat` with two columns `x1` and `v1`. If you wish to calculate a third column that contains `x1` multiplied by `v1` this can be done simultaneously down every element of the of the column. You can also access e.g. the third row using `study_dat[3,]`, or the second column with `study_dat[,2]` or `study_dat$v1`. To access the fourth entry in the second column use `study_dat[4,2]` or `study_dat$v1[4]`. You might to access individual entries in a table of data when converting from one effect size type to another if reporting is inconsistent between studies.
+
+Play around with the `study_dat` data in the following code box to familiarise yourself with how to access individual rows or columns or entries in a table of data. What do you think `NA` represents, and what happens when it occurs in calculations?
+
+```{r vectorised-setup}
+study_dat <- data.frame(x1 = c(4, 5, 7, 9, 0, 2), v1 = c( 3.2, 1.7, 9.8, NA, 4.0, 3.3))
+```
+
+```{r vectorised, exercise=TRUE}
+# Display study_dat
+study_dat
+# Create a new column by multiplication
+study_dat$x1v1 <- study_dat$x1 * study_dat$v1
+study_dat
+# Display 3rd row
+study_dat[3,]
+# Display fourth entry of x1
+study_dat$x1[4]
+```
+
