@@ -1,0 +1,10 @@
+study,source,n1i,m1i,sd1i,n2i,m2i,sd2i,dval,tval,pval,sign
+1,Edinburgh,NA,NA,47,NA,NA,64,NA,NA,NA,-1
+2,Orpington-Mild,NA,NA,7,NA,NA,NA,NA,-1.4,0.17,-1
+3,Orpington-Moderate,75,64,17,71,119,NA,NA,NA,NA,-1
+4,Orpington-Severe,18,66,20,18,137,NA,NA,NA,NA,-1
+5,Montreal-Home,NA,NA,8,NA,NA,NA,-0.4,NA,NA,-1
+6,Montreal-Transfer,57,19,7,52,18,NA,NA,NA,NA,1
+7,Newcastle,NA,NA,45,NA,NA,34,NA,NA,NA,1
+8,Umea,NA,NA,16,NA,NA,NA,-0.43,NA,NA,-1
+9,Uppsala,NA,NA,27,NA,NA,NA,NA,1.54,0.13,1

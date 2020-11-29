@@ -1,0 +1,47 @@
+---
+title: "Assembling data for a meta-analysis"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(learnr)
+cont_complete_dat   <- read.csv("www/cont_complete.csv")
+cont_incomplete_dat <- read.csv("www/cont_incomplete.csv")
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+## Introduction
+Most books on meta-analysis will give you worked examples where all the data you need for the analysis are available in a convenient format. This might be in the book, or online supplement, and you will find the means or binary counts or correlations as well as the standard deviations and sample sizes for a set of studies. This makes it much more straightforward to complete the meta-analysis at hand, once you have decided on the appropriate metric to use in your effect size.
+
+The problem is that in a "real" systematic review, the papers you collate together will be inconsistent. Some authors might give p-values and t-statistics, but be vague on sample size, or some aspect of the effects that you are trying to analyse. This website shows you how to manually fill in some of the "gaps" in the data, for an example of messy continuous and an example of gappy binary (count) data. There is not an automatic function that will do this for you, so it is a useful skill to have, to increase the number of studies that you can incorporate into your meta-analysis.
+
+Of course, sometimes no amount of clever back-transformations can help you, and you also need to be able to recognise situations where it is not possible to include the study in your meta-analysis.
+
+## Incomplete continuous data
+Here the aim is to undertake a meta-analysis using standardised mean differences. So we need to know the difference in the means, the standard deviations and sample sizes. So here is what you might ideally want for a meta-analysis:
+
+* 9 studies
+* Sample sizes, `n1i` and `n2i` available
+* Effect sizes, `m1i` and `m2i` provided
+* Standard deviations, `sd1i` and `sd2i`
+
+```{r}
+kable(cont_complete_dat)
+```
+
+Of course, that is the ideal, but what if when you eventually assemble your data together you actually have:
+
+```{r}
+kable(cont_incomplete_dat)
+```
+
+**OH dear!**
+We only have all the information we need for 3 studies, numbers 3, 4 and 6! However, all is not lost, because we have managed to scrape together other bits of information. In particular:
+
+* All the studies report sample sizes; this is important
+* Studies 1 and 7 report Cohen's _d_ standardised mean difference `dval`
+* Studies 5 and 8 report sample size and t-statistic `tval` from a t-test
+* Studies 2 and 9 report the 2-sided p-value `pval` from a t-test and we know the direction of the effect positive or negative in `sign`
