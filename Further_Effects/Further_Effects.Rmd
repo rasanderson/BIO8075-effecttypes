@@ -9,6 +9,7 @@ library(learnr)
 library(metafor)
 continuous_dat <- read.csv("www/Borenstein_p88.csv")
 binary_dat     <- read.csv("www/Borenstein_p93.csv")
+corr_dat       <- read.csv("www/Borenstein_p98.csv")
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
@@ -377,10 +378,35 @@ SERD
 ### Which binary metric to choose?
 Risk ratios and odds ratios are most commonly used, as they are **relative** measures and not affected by the absolute size of the baseline against which you are comparing. Risk ratios are probably easier to interpret than odds ratios; you will learn how to compute both in `metafor`.
 
-## Manual meta-anlaysis of binary data
-In many publications binary data might be reported as 2 x 2 tables, so you would have to reformat them into rows (one row per study) prior to analysis. Again these data are taken from Borenstein page 93 where you can see the fully-worked out examples. The data are in a data.frame called `binary_dat`
+## Effect sizes for correlations
+Most ecologists are very familiar with correlation, as it is a relatively simple statistic, widely reported. The "population" correlation is usually represented by the Greek letter $\rho$ (Greek letter _rho_) whilst the "sample" correlation, that is what is actually reported in any study, is indicated via _r_.   However, in meta-analysis the correlation coefficients _r_ are usually converted to Fisher's _z_ scale (the terminology is a little confusing, as this is not the same as the _z_ values used in some statistics tests). The values are then back-converted to the original _r_ values for final presentation of the meta-analysis results. The process is shown schematically below:
 
-```{r binary_show, exercise = TRUE}
-binary_dat
+![](www/correl_fisher_z_fig_6_1.png)
+
+and Fisher's _z_ scale values can be calculated as:
+
+$$z=0.5 \times \ln\bigg(\frac{1+r}{1-r}\bigg)$$
+and the back-transformation to the original correlation units is:
+
+$$r=\frac{e^{2z}-1}{e^{2z}+1}$$
+Again we will use one of the example datasets from Borenstein, so that if you want to undertake the entire analysis by hand to gain greater insights you a free to do so.  First, import the data:
+
+```{r correlation, exercise=TRUE}
+corr_dat
+
 ```
+
+There are six studies; to manually calculate Fisher's _z_ transformed value for the first study by Fonda, we simply need to calculate:
+
+$$z_1 = 0.5 \times \ln\bigg(\frac{1+0.50}{1-0.50}\bigg)$$
+
+which can be calculated in R; remember that in R the function `log()` is for natural logs, whereas the function `log10()` is for logs to base-10:
+
+```{r z value}
+z_Fonda <- 0.5 * log((1+corr_dat$Correlation[1])/(1-corr_dat$Correlation[1]))
+z_Fonda
+
+```
+
+This is quite cumbersome for one study, but fortunately the calculations can be done automatically within `metafor`.
 
