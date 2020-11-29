@@ -197,6 +197,8 @@ You can see from the above that the bias-correction values, _J_ are all near 1.0
 ### Response ratios
 Where the outcome of the experiment or study is on a real physical scale, such as animal weight, tree height etc. with a true zero (no negative numbers possible) then the ratio of the two means (e.g. intervention and control) provides a useful and relatively straightforward effect size measurement. For the reasons outlined [here](https://naturalandenvironmentalscience.shinyapps.io/Effectsizes/#section-how-to-measure-effect-sizes) these are usually log-transformed, so that they are symmetrical and more likely to be normally distributed.
 
+![](www/response_ratios_fig_4.1.png){width=75%}
+
 Thus, the log response ratio is:
 
 $$ln(RR)=\frac{\bar{X_1}}{\bar{X_2}}$$
@@ -294,6 +296,8 @@ We have already looked at an example of **risk ratios** [in this website](https:
 
 In our Treated group above the risk of death is 5/100 = 0.05, whilst for the Control it is 10/100 = 0.10. Hence the risk ratio 0.05/0.10 = 0.5  Risk ratios are fairly intuitive, with values of less than 1.0 indicating the risk is lower in the control, a value of 1.0 indicates no difference, and value of greater than 1.0 indicates higher risk in the control. As explained before, to keep everything symmetrical the (natural) log is usually taken. **Note** In R the function for natural logarithms is `log()`.
 
+![](www/risk_ratios_fig_5_1.png){width=75%}
+
 $$RiskRatio=\frac{A/n_1}{C/n_2}$$
 
 and
@@ -321,7 +325,11 @@ VSE
 
 
 ### Odds ratios
-The odds of death in our Treated group is 5/95=0.0526, and the odds of death in the Control is 10/90=0.1111  The odds ratio is therefore 0.0526/0.1111 = 0.4737  Again the log odds ratio is often used. Formally, the equation is:
+The odds of death in our Treated group is 5/95=0.0526, and the odds of death in the Control is 10/90=0.1111  The odds ratio is therefore 0.0526/0.1111 = 0.4737  Again the log odds ratio is often used.
+
+![](www/odds_ratios_fig_5_2.png){width=75%}
+
+Formally, the equation is:
 
 $$OddsRatio=\frac{AD}{BC}$$
 
@@ -381,7 +389,7 @@ Risk ratios and odds ratios are most commonly used, as they are **relative** mea
 ## Effect sizes for correlations
 Most ecologists are very familiar with correlation, as it is a relatively simple statistic, widely reported. The "population" correlation is usually represented by the Greek letter $\rho$ (Greek letter _rho_) whilst the "sample" correlation, that is what is actually reported in any study, is indicated via _r_.   However, in meta-analysis the correlation coefficients _r_ are usually converted to Fisher's _z_ scale (the terminology is a little confusing, as this is not the same as the _z_ values used in some statistics tests). The values are then back-converted to the original _r_ values for final presentation of the meta-analysis results. The process is shown schematically below:
 
-![](www/correl_fisher_z_fig_6_1.png)
+![](www/correl_fisher_z_fig_6_1.png){width=75%}
 
 and Fisher's _z_ scale values can be calculated as:
 
@@ -409,4 +417,3 @@ z_Fonda
 ```
 
 This is quite cumbersome for one study, but fortunately the calculations can be done automatically within `metafor`.
-
