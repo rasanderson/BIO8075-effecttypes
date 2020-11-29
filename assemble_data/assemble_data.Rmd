@@ -45,3 +45,6 @@ We only have all the information we need for 3 studies, numbers 3, 4 and 6! Howe
 * Studies 1 and 7 report Cohen's _d_ standardised mean difference `dval`
 * Studies 5 and 8 report sample size and t-statistic `tval` from a t-test
 * Studies 2 and 9 report the 2-sided p-value `pval` from a t-test and we know the direction of the effect positive or negative in `sign`
+
+## Common conversions between effect sizes
+### 
