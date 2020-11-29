@@ -8,6 +8,7 @@ runtime: shiny_prerendered
 library(learnr)
 library(metafor)
 continuous_dat <- read.csv("www/Borenstein_p88.csv")
+binary_dat     <- read.csv("www/Borenstein_p93.csv")
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
@@ -70,11 +71,14 @@ So, we can say that the observed effect $Y_i$ for any study is given by the gran
 $$Y_i = \mu + \zeta_i + \epsilon_i$$
 This equation covers both within-study variation $\epsilon_i$ and between-study variation $\zeta_i$.
 
-## Manual calculation of effect size for continuous data
-For this example we will use a set of data in Borenstein page 88, in which there are six studies, for which we know the **means, standard deviations and sample sizes** of two interventions, treatment `T` and the control `C`. These are two commonly used effect sizes for continuous data:
+## Effect sizes for continuous data
+For this example we will use a set of data in Borenstein page 88, in which there are six studies, for which we know the **means, standard deviations and sample sizes** of two interventions, treatment `T` and the control `C`. These are three commonly used effect sizes for continuous data:
 
 * Standardised mean difference _d_
 * Hedge's _g_ (bias corrected)
+* Response ratios (log-transformed)
+
+You might be wondering why we can't simply use the raw (unstandardised) difference between the means. There might be some exceptions where this can be used, for example all the studies have similar variances, and all the studies use precisely the same scale of measurement etc. In practice, these prerequisites are rarely met with ecological data.
 
 The relevant data are contained in the R `data.frame` called `continuous_dat`:
 
@@ -140,8 +144,8 @@ Again, you have to be careful with brackets to ensure that the additions and mul
 $$J = 1 - \frac{3}{4df -1}$$
 where $df$ is the degrees of freedom used to estimate $S_{within}$, which for two independent groups is simply $n_1+n_2-2$ (see equation fo $S_{within})$).
 
-### Hedge's _g_ effect size
-_Hedge's g_ is often a preferred effect size data, as it contains a "bias correction" term _J_:
+### Hedge's _g_ 
+The standardised mean difference _d_ is less reliable for studies of small sample size. For this reason, _Hedge's g_ is often a preferred effect size data, as it contains a "bias correction" term _J_:
 
 $$g = J . d$$
 Whilst the bias-correct variance $V_g$ is:
@@ -189,9 +193,21 @@ cbind(J, d, g, Vd, Vg)
 
 You can see from the above that the bias-correction values, _J_ are all near 1.0, but it is lower for the 3rd study, which has the smallest number of samples.  Values of J near to 1.0 indicate that less bias-correction is needed.
 
-## Manual calculation of meta-analysis
+### Response ratios
+Where the outcome of the experiment or study is on a real physical scale, such as animal weight, tree height etc. with a true zero (no negative numbers possible) then the ratio of the two means (e.g. intervention and control) provides a useful and relatively straightforward effect size measurement. For the reasons outlined [here](https://naturalandenvironmentalscience.shinyapps.io/Effectsizes/#section-how-to-measure-effect-sizes) these are usually log-transformed, so that they are symmetrical and more likely to be normally distributed.
+
+Thus, the log response ratio is:
+
+$$ln(RR)=\frac{\bar{X_1}}{\bar{X_2}}$$
+
+using logarithms to base $e$.
+
+### Which continuous measure to use?
+Hedge's _g_ and response ratios are the two most widely used metrics used in ecology. Both can be implemented in `metafor` for ease of calculation. There is some recent evidence that response ratios are more robust where there are big differences in the variance between studies; see Becky Spake's [recent paper in Ecology Letters](https://doi.org/10.1111/ele.13641) that she described in her seminar earlier in November.
+
+## Manual meta-analysis of continuous data
 ### Overall weights W
-Remember that in a meta-analysis you are basically calculating a weighted mean of the effect sizes, here the standardised mean differences as represented by Hedge's _g_, for the individual studies from your systematic review. 
+Remember that in a meta-analysis you are basically calculating a weighted mean of the effect sizes. In this example we will use **Hedge's _g_** (bias-corrected standardised mean differences) for the individual studies from a systematic review. 
 
 Now that we have calculated the bias-corrected variance $V_g$ we can readily calculate the weight _W_ for an individual study:
 
@@ -247,4 +263,124 @@ M
 
 ```
 
-This gives an **overall standardised mean difference**, weighted for the different studies.
+This use of Hedge's _g_ gives an **overall standardised mean difference**, weighted for size of the different studies, with a bias-correction for studies with small numbers of replicates.
+
+## Effect sizes for binary data
+Often studies will report binary data, such as ‘dead’ or ‘alive’, ‘present’ or ‘absent’ etc. The three main ones for binary data are:
+
+* Risk ratio
+* Odds ratio
+* Risk difference
+
+The `metafor` package can handle all three type of effect size. The data will often be presented in the form of a 2 x 2 table in a single published study, although you would typically need to reformat the data to one row per study for a meta-analysis. Taking the example from page 33 of Borenstein:
+
+| Intervention | Events | Non-events | N |
+|:------------:|:----:|:-----:|:--:|
+| Treated | A | B | $n_1$ |
+| Control | C | D | $n_2$ |
+
+then imagine you had a sample size of 100 for each of the two interventions:
+
+| Intervention | Dead | Alive | N |
+|:------------:|:----:|:-----:|:--:|
+| Treated | 5 | 95 | 100 |
+| Control | 10 | 90 | 100 |
+
+Let's now look at these data for the three possible effect sizes
+
+### Risk ratios
+We have already looked at an example of **risk ratios** [in this website](https://naturalandenvironmentalscience.shinyapps.io/Effectsizes/#section-interactive-forest-plot-of-meta-analysis) and in ecological and conservation surveys if you are particularly interested in the risk of extinction for example, then these might be an appropriate measure.
+
+In our Treated group above the risk of death is 5/100 = 0.05, whilst for the Control it is 10/100 = 0.10. Hence the risk ratio 0.05/0.10 = 0.5  Risk ratios are fairly intuitive, with values of less than 1.0 indicating the risk is lower in the control, a value of 1.0 indicates no difference, and value of greater than 1.0 indicates higher risk in the control. As explained before, to keep everything symmetrical the (natural) log is usually taken. **Note** In R the function for natural logarithms is `log()`.
+
+$$RiskRatio=\frac{A/n_1}{C/n_2}$$
+
+and
+
+$$LogRiskRatio=ln(RiskRatio)$$
+
+The variance is approximately:
+
+$$V_{LogRiskRatio}=\frac{1}{A}-\frac{1}{n_1}+\frac{1}{C}-\frac{1}{n_2}$$
+
+with an approximation of the standard error being
+
+$$SE_{LogRiskRatio}=\sqrt{V_{LogRiskRatio}}$$
+
+In this code box we can now easily complete these calculations:
+
+```{r RR, exercise=TRUE}
+logRR <- log((5/100)/(10/100))
+logRR
+VRR   <- 1/5 - 1/100 + 1/10 - 1/100
+VRR
+VSE   <- sqrt(VRR)
+VSE
+```
+
+
+### Odds ratios
+The odds of death in our Treated group is 5/95=0.0526, and the odds of death in the Control is 10/90=0.1111  The odds ratio is therefore 0.0526/0.1111 = 0.4737  Again the log odds ratio is often used. Formally, the equation is:
+
+$$OddsRatio=\frac{AD}{BC}$$
+
+Like most people I don't find this as intuitive as Risk Ratios, but odds ratios have certain statistical advantages, so you should be familiar with them. For completeness:
+
+$$LogOddsRatio=ln(OddsRatio)$$
+
+with the variance given by:
+
+$$V_{LogOddsRatio}=\frac{1}{A}+\frac{1}{B}+\frac{1}{C}+\frac{1}{D}$$
+
+and standard error:
+
+$$SE_{LogOddsRatio}=\sqrt{V_{LogOddsRatio}}$$
+
+Again, these calculations are simple to complete in R:
+
+```{r OR, exercise = TRUE}
+LogOR  <- log((5 * 90)/(95 * 10))
+LogOR
+VOR    <- 1/5 + 1/95 + 1/10 + 1/90
+VOR
+SEOR   <- sqrt(VOR)
+SEOR
+```
+
+
+For both risk ratios and odds ratios it doesn't matter whether you pick 'Treated' or 'Control' as your numerator, as long as you are consistent across all your studies.
+
+### Risk differences
+This is the difference between two risks, and we work in the original units without log-transformation:
+
+$$RiskDifference=(\frac{A}{n_1})-(\frac{C}{n_2})$$
+
+the variance is:
+
+$$V_{RiskDifference}=\frac{AB}{n_1^3}+\frac{CD}{n_2^3}$$
+
+and the standard error is:
+
+$$SE_{RiskDifference}=\sqrt{V_{RiskDifference}}$$
+
+These calculations are shown in the code block below:
+
+```{r RD, exercise = TRUE}
+RD <- (5/100) - (10/100)
+RD
+VRD <- 5*95/100^3 + 10*90/100^3 # Note use of ^3 to raise to cube
+VRD
+SERD <- sqrt(VRD)
+SERD
+```
+
+### Which binary metric to choose?
+Risk ratios and odds ratios are most commonly used, as they are **relative** measures and not affected by the absolute size of the baseline against which you are comparing. Risk ratios are probably easier to interpret than odds ratios; you will learn how to compute both in `metafor`.
+
+## Manual meta-anlaysis of binary data
+In many publications binary data might be reported as 2 x 2 tables, so you would have to reformat them into rows (one row per study) prior to analysis. Again these data are taken from Borenstein page 93 where you can see the fully-worked out examples. The data are in a data.frame called `binary_dat`
+
+```{r binary_show, exercise = TRUE}
+binary_dat
+```
+
