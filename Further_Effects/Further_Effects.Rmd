@@ -15,9 +15,13 @@ knitr::opts_chunk$set(echo = FALSE)
 
 
 ## Introduction
-This website introduces you to two types of meta-analysis, **fixed-effects** and **random-effects** analysis, and also shows you how to calculate effect sizes manually, and hence the mechanics of a simple meta-analysis. In most of this module you will use automatic methods to calculate effect sizes and do the meta-analysis, but doing some of the basics manually will give you a better understanding. Finally, we address the problem that when you are collating information from several different studies they may not all report the information in the same way. For example one paper may have the means, standard errors and sample sizes, making it easy to calculate the standardised mean differences. However, another might report means, t-statistics and p-values. These cannot all be analysed automatically until they are converted to the same format.
+This website introduces you to two the concepts behind two broad types of meta-analysis, **fixed-effects** and **random-effects** analysis. We also look at the most common effect sizes used for:
 
-To do this you need to understand more about the mechanics of calculating effect sizes, which (sorry!) results in a few equations to work through in this website.
+* continuous data (means)
+* binary data (counts)
+* correlation data (relationships between continuous variables)
+
+The website provides the main equations needed to calculate effect sizes manually, and then the mechanics of a simple meta-analysis, using continuous data. In most of BIO8075 you will use automatic methods to calculate effect sizes and do the meta-analysis via the `escalc` and `rma` functions in the R `metafor` package. However, doing some of the basics manually will give you a better understanding.
 
 ### Vectorised arithmetic
 Manual calculation of effect sizes is made easier by R's **vectorised arithmetic** which means that you can apply the same  calculation to every element in a table of data. For example, the following code block contains a `data.frame` called `study_dat` with two columns `x1` and `v1`. If you wish to calculate a third column that contains `x1` multiplied by `v1` this can be done simultaneously down every element of the of the column. You can also access e.g. the third row using `study_dat[3,]`, or the second column with `study_dat[,2]` or `study_dat$v1`. To access the fourth entry in the second column use `study_dat[4,2]` or `study_dat$v1[4]`. You might to access individual entries in a table of data when converting from one effect size type to another if reporting is inconsistent between studies.
@@ -410,7 +414,7 @@ $$z_1 = 0.5 \times \ln\bigg(\frac{1+0.50}{1-0.50}\bigg)$$
 
 which can be calculated in R; remember that in R the function `log()` is for natural logs, whereas the function `log10()` is for logs to base-10:
 
-```{r z value}
+```{r z_value, exercise=TRUE}
 z_Fonda <- 0.5 * log((1+corr_dat$Correlation[1])/(1-corr_dat$Correlation[1]))
 z_Fonda
 
