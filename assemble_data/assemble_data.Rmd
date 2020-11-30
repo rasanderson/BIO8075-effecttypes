@@ -19,7 +19,9 @@ Most books on meta-analysis will give you worked examples where all the data you
 
 The problem is that in a "real" systematic review, the papers you collate together will be inconsistent. Some authors might give p-values and t-statistics, but be vague on sample size, or some aspect of the effects that you are trying to analyse. This website shows you how to manually fill in some of the "gaps" in the data, for an example of messy continuous and an example of gappy binary (count) data. There is not an automatic function that will do this for you, so it is a useful skill to have, to increase the number of studies that you can incorporate into your meta-analysis.
 
-Of course, sometimes no amount of clever back-transformations can help you, and you also need to be able to recognise situations where it is not possible to include the study in your meta-analysis.
+Of course, sometimes no amount of clever back-transformations can help you, and you also need to be able to recognise situations where it is not possible to include the study in your meta-analysis. In this website we will focus on an incomplete dataset where means and standard deviations are only available for some studies.
+
+**Note** Eagle-eyed amongst you may notice that some equations are not exactly the same as you have used before. Sometimes approximations are needed.
 
 ## Incomplete continuous data
 Here the aim is to undertake a meta-analysis using standardised mean differences. So we need to know the difference in the means, the standard deviations and sample sizes. So here is what you might ideally want for a meta-analysis:
@@ -55,9 +57,15 @@ We will load the `metafor` package here. Whilst we are not going to do a formal 
 library(metafor)
 ```
 
-This will also give us ready access to the "effect size calculator" function `escalc`.
+This will also give us ready access to the "effect size calculator" function `escalc`. We are going to fill in the gaps in 5 steps:
 
-### Studies with no problems; 3, 4, 6 
+1. Calculate Hedges' _g_ for the studies with no problems
+2. Find t-statistics for studies that only give p-values
+3. Calculate _d_ effect size (**not** bias-corrected) from t-statistics
+4. Calculate Hedges' _g_ from _d_
+5. Calculate sample variance _V_
+
+## 1. Hedges _g_ for studies with no problems; 3, 4, 6 
 These are studies 3, 4 and 6. These are the only ones where we can easily calculate the standardised mean difference bias-corrected, i.e. the Hedges' _g_ measure of the effect size. Your incomplete dataset, with measurements on a continuous scale, is in a dataframe called `cont_incomp_dat`
 
 ```{r hedges_g, exercise=TRUE}
@@ -76,7 +84,7 @@ The code **overwrites** your original incomplete dataset, filling in the calcula
 * yi  The effect size, here Hedges' _g_
 * vi  The estimated variance
 
-### Studies with p-value from 2-sided t-test; 2 and 9
+## 2. Calculate t-statistics from p-values; studies 2 and 9
 Here we have a p-value, and (fortunately) we know the sample size. However, the reporting is very poor, in that whilst they have given the p-value, they do not quote the t-statistic. The t-statistic is output from many types of analysis, and is used to determine whether an estimated parameter value is significantly different from zero. Luckily, from our reading of the text of these studies, we know which treatment is bigger or smaller than the other, which we have encoded in the `sign` column. So in study 2, the second mean is bigger than the first (m1i - m2i is negative), whereas in study 9 it is greater.
 
 We need to produce an approximate estimate of the t-statistic, before we can then move on to estimate an effect size. The next bit of code looks a bit complicated, so I have split the first line over 4 lines, with 2 closing brackets, to make it clearer. The key points are:
@@ -115,8 +123,8 @@ cont_incomp_dat$tval <- replmiss(cont_incomp_dat$tval,
 cont_incomp_dat
 ```
 
-### Studies with just t-statistics; 2, 5, 8, 9
-Now that we have calculated the t-statistics for studies 2 and 9, we have four studies where we have t-statistics, sample sizes, but do not have information on the means. We can convert these to standardised mean difference _g_ values using the following equation. **Note** It is referred to as "Cohen's _d_" in Koricheva.
+## 3. Standardised mean difference _d_ from t-statistics; studies 2, 5, 8, 9
+Now that we have calculated the t-statistics for studies 2 and 9, we have four studies where we have t-statistics, sample sizes, but do not have information on the means. We can convert these to standardised mean difference _d_ values using the following equation. **Note** It is referred to as "Cohen's _d_" in Koricheva.
 
 $$d=t\sqrt{\frac{n_1 + n_2}{n_1n_2}}$$
 
@@ -145,7 +153,7 @@ cont_incomp_dat$dval <- replmiss(cont_incomp_dat$dval,
 cont_incomp_dat
 ```
 
-### Calculate Hedges' _g_ from _d_
+## 4. Convert _d_ to Hedges' _g_
 As we have already seen, the bias-corrected Hedges' _g_ is slightly better than _d_ especially for small sample sizes. So we need our _J_ correction or bias-correction factor. Recall that:
 
 $$g=Jd$$
@@ -180,7 +188,7 @@ cont_incomp_dat
 
 ```
 
-### Finishing off: sampling variances
+## 5. Finishing off: sampling variances
 We still only have the sampling variances for studies 3, 4 and 6 which were the only ones with full datasets at the start. So we will finish by completing the `vi` column for all the other studies. The equation for the sampling variance is:
 
 $$V=\frac{1}{n_1}+\frac{1}{n_2}+\frac{g^2}{2(n_1+n_2)}$$
