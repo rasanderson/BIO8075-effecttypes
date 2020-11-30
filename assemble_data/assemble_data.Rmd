@@ -7,8 +7,9 @@ runtime: shiny_prerendered
 ```{r setup, include=FALSE}
 library(knitr)
 library(learnr)
-cont_complete_dat   <- read.csv("www/cont_complete.csv")
-cont_incomplete_dat <- read.csv("www/cont_incomplete.csv")
+library(metafor)
+cont_comp_dat   <- read.csv("www/cont_complete.csv")
+cont_incomp_dat <- read.csv("www/cont_incomplete.csv")
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
@@ -25,26 +26,195 @@ Here the aim is to undertake a meta-analysis using standardised mean differences
 
 * 9 studies
 * Sample sizes, `n1i` and `n2i` available
-* Effect sizes, `m1i` and `m2i` provided
+* Means for 2 treatments, `m1i` and `m2i` provided
 * Standard deviations, `sd1i` and `sd2i`
 
 ```{r}
-kable(cont_complete_dat)
+kable(cont_comp_dat)
 ```
 
 Of course, that is the ideal, but what if when you eventually assemble your data together you actually have:
 
 ```{r}
-kable(cont_incomplete_dat)
+kable(cont_incomp_dat)
 ```
 
 **OH dear!**
 We only have all the information we need for 3 studies, numbers 3, 4 and 6! However, all is not lost, because we have managed to scrape together other bits of information. In particular:
 
 * All the studies report sample sizes; this is important
-* Studies 1 and 7 report Cohen's _d_ standardised mean difference `dval`
-* Studies 5 and 8 report sample size and t-statistic `tval` from a t-test
+* Studies 3, 4 and 6 provide all the necessary information
 * Studies 2 and 9 report the 2-sided p-value `pval` from a t-test and we know the direction of the effect positive or negative in `sign`
+* Studies 1 and 7 report standardised mean difference `dval` , sometimes called "Cohen's _d_" rather than what we are more likely to use, Hedges' _g_
+* Studies 5 and 8 report sample size and t-statistic `tval` from a t-test
 
 ## Common conversions between effect sizes
-### 
+We will load the `metafor` package here. Whilst we are not going to do a formal meta-analysis, it has a few useful utility functions, which make the completion of missing data easier. If you have not done so already, issue:
+
+```{r, eval=FALSE}
+library(metafor)
+```
+
+This will also give us ready access to the "effect size calculator" function `escalc`.
+
+### Studies with no problems; 3, 4, 6 
+These are studies 3, 4 and 6. These are the only ones where we can easily calculate the standardised mean difference bias-corrected, i.e. the Hedges' _g_ measure of the effect size. Your incomplete dataset, with measurements on a continuous scale, is in a dataframe called `cont_incomp_dat`
+
+```{r hedges_g, exercise=TRUE}
+# Original data
+cont_incomp_dat
+
+# Calculate Hedges' g
+cont_incomp_dat <- escalc(measure="SMD", m1i=m1i, sd1i=sd1i, n1i=n1i, m2i=m2i, sd2i=sd2i, n2i=n2i, data=cont_incomp_dat)
+
+# Revised dataset just for studies 3, 4, 6
+cont_incomp_dat
+```
+
+The code **overwrites** your original incomplete dataset, filling in the calculations. **Note** depending on the width of your browser you may have to click the little right-arrow to see all the columns of your table. Two new columns have been added:
+
+* yi  The effect size, here Hedges' _g_
+* vi  The estimated variance
+
+### Studies with p-value from 2-sided t-test; 2 and 9
+Here we have a p-value, and (fortunately) we know the sample size. However, the reporting is very poor, in that whilst they have given the p-value, they do not quote the t-statistic. The t-statistic is output from many types of analysis, and is used to determine whether an estimated parameter value is significantly different from zero. Luckily, from our reading of the text of these studies, we know which treatment is bigger or smaller than the other, which we have encoded in the `sign` column. So in study 2, the second mean is bigger than the first (m1i - m2i is negative), whereas in study 9 it is greater.
+
+We need to produce an approximate estimate of the t-statistic, before we can then move on to estimate an effect size. The next bit of code looks a bit complicated, so I have split the first line over 4 lines, with 2 closing brackets, to make it clearer. The key points are:
+
+* Line 1. `cont_incomp_dat$tval <-` The results of the function are going to be 9 numbers, only assigned to the `tval` column in your data frame
+* Line 1. `replmiss()` This function is from `metafor` and is used to replace missing (NA) values. It takes just 2 arguments, the first being the name of the column that contains the missing values, here `cont_incomp_dat$tval`
+* Line 1. Note that this line ends with a comma `,`  This warns R that you have not finished typing the command, because of course `replmiss` needs **two** arguments. The second argument is a column of numbers the same length as `cont_incomp_dat$tval`, i.e. 9 numbers, to use to replace the missing values
+* Line 2. This is the start of the second argument. To reduce the amount of typing needed, we are using the standard R command `with()`. This expects 2 arguments. The first is a data.frame as, here `cont_incomp_dat`, and the second a calculation using various columns in this dataframe. When you are doing a calculation with several columns you only need give the column names. 
+* Line 2. Again notice it ends in a comma `,`  Again this tells R we have not finished, because we need to give the equation for the calculation.
+* Line 3. Equation to convert p-value into a t-statistic (see below)
+* Line 4. Closing bracket for the `with` function
+* Line 5. Closing bracket for the `replmiss` function
+
+This will give you t-statistics for studies 2 and 9. The equation being used to create the t-statistic is:
+
+$$t=s.q$$
+where:
+
+* s = the sign (positive or negative)
+* q = the quantile function. A quantile provides information on what percentage or probabilities of your data lie within a given range. You actually have this probability, and the sample size which can be used to provide the degrees of freedom. The df is the total number of samples - 2.
+
+You might be wondering why we divide our p-value by 2. This is because we are back-calculating on a one-sided test (the direction is given by the `sign` column). Similarly we only want one "tail" of the t-distribution, hence we specify `lower.tail=FALSE`
+
+```{r calc_t-setup}
+cont_incomp_dat <- escalc(measure="SMD", m1i=m1i, sd1i=sd1i, n1i=n1i, m2i=m2i, sd2i=sd2i, n2i=n2i, data=cont_incomp_dat)
+
+```
+
+```{r calc_t, exercise=TRUE}
+cont_incomp_dat$tval <- replmiss(cont_incomp_dat$tval,
+                                 with(cont_incomp_dat,
+                                      sign * qt(pval/2, df=n1i+n2i-2, lower.tail=FALSE)
+                                      )
+                                 )
+
+cont_incomp_dat
+```
+
+### Studies with just t-statistics; 2, 5, 8, 9
+Now that we have calculated the t-statistics for studies 2 and 9, we have four studies where we have t-statistics, sample sizes, but do not have information on the means. We can convert these to standardised mean difference _g_ values using the following equation. **Note** It is referred to as "Cohen's _d_" in Koricheva.
+
+$$d=t\sqrt{\frac{n_1 + n_2}{n_1n_2}}$$
+
+this can be rearranged to:
+
+$$d=t\sqrt{\frac{1}{n_1}+\frac{1}{n_2}}$$
+
+which is slightly easier to enter in R as fewer brackets are needed:
+
+```{r d_from_t-setup}
+cont_incomp_dat <- escalc(measure="SMD", m1i=m1i, sd1i=sd1i, n1i=n1i, m2i=m2i, sd2i=sd2i, n2i=n2i, data=cont_incomp_dat)
+cont_incomp_dat$tval <- replmiss(cont_incomp_dat$tval,
+                                 with(cont_incomp_dat,
+                                      sign * qt(pval/2, df=n1i+n2i-2, lower.tail=FALSE)
+                                      )
+                                 )
+
+```
+
+```{r d_from_t, exercise=TRUE}
+cont_incomp_dat$dval <- replmiss(cont_incomp_dat$dval,
+                                 with(cont_incomp_dat,
+                                      tval * sqrt(1/n1i + 1/n2i)
+                                      )
+                                 )
+cont_incomp_dat
+```
+
+### Calculate Hedges' _g_ from _d_
+As we have already seen, the bias-corrected Hedges' _g_ is slightly better than _d_ especially for small sample sizes. So we need our _J_ correction or bias-correction factor. Recall that:
+
+$$g=Jd$$
+
+where
+
+$$J=1-\frac{3}{4(n_1+n_2-2)-1}$$
+
+again, we can use the R `replmiss` and `with` functions to make the calculations easier to setup, and store the resultant Hedges' _g_ values in column `yi` along with the data we have already calculated for studies 3, 4 and 6:
+
+```{r g_from_d-setup}
+cont_incomp_dat <- escalc(measure="SMD", m1i=m1i, sd1i=sd1i, n1i=n1i, m2i=m2i, sd2i=sd2i, n2i=n2i, data=cont_incomp_dat)
+cont_incomp_dat$tval <- replmiss(cont_incomp_dat$tval,
+                                 with(cont_incomp_dat,
+                                      sign * qt(pval/2, df=n1i+n2i-2, lower.tail=FALSE)
+                                      )
+                                 )
+cont_incomp_dat$dval <- replmiss(cont_incomp_dat$dval,
+                                 with(cont_incomp_dat,
+                                      tval * sqrt(1/n1i + 1/n2i)
+                                      )
+                                 )
+
+```
+```{r g_from_d, exercise=TRUE}
+cont_incomp_dat$yi <- replmiss(cont_incomp_dat$yi,
+                               with(cont_incomp_dat,
+                                    (1 - 3/(4*(n1i+n2i-2) - 1)) * dval
+                                    )
+                               )
+cont_incomp_dat
+
+```
+
+### Finishing off: sampling variances
+We still only have the sampling variances for studies 3, 4 and 6 which were the only ones with full datasets at the start. So we will finish by completing the `vi` column for all the other studies. The equation for the sampling variance is:
+
+$$V=\frac{1}{n_1}+\frac{1}{n_2}+\frac{g^2}{2(n_1+n_2)}$$
+
+
+
+```{r samp_var-setup}
+cont_incomp_dat <- escalc(measure="SMD", m1i=m1i, sd1i=sd1i, n1i=n1i, m2i=m2i, sd2i=sd2i, n2i=n2i, data=cont_incomp_dat)
+cont_incomp_dat$tval <- replmiss(cont_incomp_dat$tval,
+                                 with(cont_incomp_dat,
+                                      sign * qt(pval/2, df=n1i+n2i-2, lower.tail=FALSE)
+                                      )
+                                 )
+cont_incomp_dat$dval <- replmiss(cont_incomp_dat$dval,
+                                 with(cont_incomp_dat,
+                                      tval * sqrt(1/n1i + 1/n2i)
+                                      )
+                                 )
+
+cont_incomp_dat$yi <- replmiss(cont_incomp_dat$yi,
+                               with(cont_incomp_dat,
+                                    (1 - 3/(4*(n1i+n2i-2) - 1)) * dval
+                                    )
+                               )
+
+```
+```{r samp_var, exercise=TRUE}
+cont_incomp_dat$vi <- replmiss(cont_incomp_dat$vi,
+                               with(cont_incomp_dat,
+                                    1/n1i+ 1/n2i + yi^2/(2*(n1i+n2i))
+                                    )
+                               )
+ # Save in a new complete dataframe
+cont_completed_dat <- cont_incomp_dat
+cont_completed_dat
+```
+
