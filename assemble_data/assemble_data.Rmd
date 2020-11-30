@@ -226,3 +226,11 @@ cont_completed_dat <- cont_incomp_dat
 cont_completed_dat
 ```
 
+## Where next?
+Converting originally reported data into a format suitable for meta-analysis is time-consuming!! Chapter 13 of Koricheva et al gives a good overview of some of the issues, in which Box 13.2 to 13.4 gives a comprehensive list of several other conversions not covered here, including F-ratios which you may encounter in some reports. Also look at Chapter 7 of Borenstein on converting between effect sizes.
+
+Some of the ideas in this website have been adapted from the `metafor` documentation. I would also recommend you look at:
+
+[this website](https://www.metafor-project.org/doku.php/tips:assembling_data_or)
+
+if you are working with Odds Ratios.
