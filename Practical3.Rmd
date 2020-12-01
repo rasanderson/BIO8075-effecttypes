@@ -1,12 +1,184 @@
 ---
-title: 'Practical: manual calculations'
-author: "Roy Sanderson"
-date: "01/12/2020"
-output: html_document
+title: "BIO8075 Meta-analysis and decision support in ecology and conservation"
+subtitle: "Practical 3: Meta-analyses by hand"
+#author: "Roy Sanderson"
+output:
+  word_document:
+     reference_docx: template.docx
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Introduction
+# Introduction
+In this practical you are going to undertake some basic meta-analyses, using data from _Borenstein et al. (2009) Introduction to meta-analysis._ Many of the examples from this book are medical, rather than ecological, but it gives an exceptionally clear explanation of the underlying theory behind meta-analysis, included fixed- and random-effects.
+
+We will do a 'manual' calculation of effect sizes and subsequently a meta-analysis, using R as a "hand-calculator". In the rest of this module you will use the `metafor` package, which has built-in functions for automatic calculation of effect sizes and subsequent meta-analysis. Although cumbersome, one advantage of doing it by hand initially is that it gives you a more thorough understanding of how meta-analysis works.
+
+We will focus on a continuous set of data, with means and sds for treatment and control. These are the types of data you might obtain from studies comparing different environmental management or treatment regimes, sometimes as part of a planned experiment, but more usually a 'natural experiment' depending on the ecology of the set.
+
+The main aims of this practical are to familiarise you with the 'mechanics' of effect sizes and meta-analysis, and explore filling in gaps for incompletely reported data. The sections are:
+
+1. Revision of basics of meta-analysis
+2. Example dataset of means for two treatments
+3. Manual calculation of effect sizes (_d_ and then Hedges' _g_) and meta-analysis
+4. How to derive suitable data for a meta-analysis from incomplete reporting of data
+
+# 1. A quick reminder of meta-analysis
+First, a quick revision of some basic concepts. Meta-analysis is basically a **weighted average of standardised effect sizes**.  We need to use standardised effect sizes as different studies may have used different measures, units etc. and so standardising by the pooled standard deviation makes them easier to compare. The weights are derived from the sample size and variation in each study. Forest
+plots provide a simple summary of a meta-analysis:
+
+![](Further_Effects/www/forest_fig_1.png)
+
+Here the squares represent the standardised effect size for the individual studies and the size of the squares their weights.  The diamond represents the overall weighted average of the effect size, and the width of the diamond represents the degree of uncertaintity about the overall estimate.
+
+# 2. Example dataset of continuous data
+This is a dataset of 6 studies, stored in an Excel file (CSV format). The raw data are taken from page 88 of Borenstein.  First download the **Borenstein_p88.csv** data from Canvas, read in and display the data. You may need to modify the `read.csv()` call depending on where you have saved the data. I normally recommend that you use R Projects, and store all your data within a subfolder called `Data`
+
+```{r}
+# Continuous data
+continuous_dat <- read.csv("Data/Borenstein_p88.csv")
+continuous_dat  # Just entering the name is the same as print(continuous_dat)
+```
+
+You can see that the format of the data is fairly simple, with the means, SD and number of samples shown for thre Treatment (T) and Control (C) of each study. The sudy by Peck has relatively few samples (40 in T and C) and so will be given a lower weight in the meta-analysis, whilst that of Donat has 200 per treatment, and so will receive a high weight.
+
+# 3. Fixed-effects meta-analysis with example data
+In a fixed effect analysis, all the studies are assumed to have the same 'true' effect, and all the factors that could influence the effect size are the same in all the studies. However, there is still sampling error, which is reflected in the different results for each study  The study weights are assigned as the inverse of the variance of each study.  This can be summed up in the following diagram:
+
+![](Further_Effects/www/fixed_fig_11_1_11_2.png)
+
+So the key point with a fixed-effect model is that the observed effect $Y_i$ for any given study $i$ is:
+
+$$Y_i = \theta + \epsilon_i$$
+where $\theta$ (Greek letter _theta_) is the overall "population" mean and $\epsilon_i$ (Greek letter _epsilon_) is the sampling error (which might be positive or negative)
+
+## 3.1 Standardised mean difference _d_ for single study
+The standardised mean difference is often reported in studies. Somewhat confusingly, you may see it referred to as "Cohen's _d_" or even "Hedges' _d_" in some books, so you might want to double-check their equations to work out exactly what they are referring to, as there is a frustrating lack of consistency in the meta-analysis literature. First we want to calculate the standardised mean difference _d_ for
+treatment and control in each study, which is done via:
+
+$$d=\frac{\overline{X_1}-\overline{X_2}}{S_{within}}$$
+
+where $\overline{X_1}$ and $\overline{X_2}$ are the means of the Treatment and Control of the study, and ${S_{within}}$ is the within-groups standard deviation. The latter can be calculated from:
+
+$$S_{within}=\sqrt{\frac{(n_1-1)S^2_1 + (n2-1)S^2_2}  {n_1 + n_2 - 2}}$$
+
+where $n_1$ and $n_2$ are the numbers of replicates for the two treatments in the study, whilst $S^2_1$ and $S^2_1$ are the respective standard deviations. We can easily calculate these two values for the first study, by Carroll, in R:
+
+```{r manual calculation of Carroll}
+S_within_Carroll <- sqrt(((60-1)*22^2 +(60-1)*20^2) / (60 + 60 -2))
+d_Carroll        <- (94 - 92) / S_within_Carroll
+
+S_within_Carroll
+d_Carroll
+
+```
+
+This is a little bit cumbersome, as you have to make sure you enter all the correct brackets, to ensure the multiplications, subtractions and divisions are done in the right order.  Check that your figures for Carroll match the ones in the schedule.
+
+## 3.2 Vectorised calculation of _d_ and $S_{within}$ for multiple studies
+Of course, it would take a long time to do each calculation for every study, but luckily R allows 'vectorised' arithmetic, so you can find the results for all the studies simultaneously. **Note** in the code below the indented code is actually all part of the $\sqrt{}$ symbol from the equation for $S_{within}$ above.
+
+```{r manual calculation S_within d}
+S_within <- sqrt(((continuous_dat$T_n-1)*continuous_dat$T_SD^2 +
+                   (continuous_dat$C_n-1)*continuous_dat$C_SD^2) / 
+                   (continuous_dat$T_n + continuous_dat$C_n -2))
+d       <- (continuous_dat$T_mean - continuous_dat$C_mean) / S_within
+
+
+cbind(S_within, d)
+
+```
+
+In above table `S_within` is the within-groups standard deviation, and _d_ is the standardised mean difference.
+
+## 3.3 Calculation of variance for a single study
+We now want to calculate the variance of this standardised mean difference, $V_d$ :
+
+$$V_d = \frac{n_1 + n_2}{n_1n_2}+\frac{d^2}{2(n_1+n_2)}$$
+
+In the above equation, the first term on the right, $\frac{n_1 + n_2}{n_1n_2}$, represents the uncertainty in the difference betweens the means, $\overline{X_1}-\overline{X_2}$ . The second term on the right, $\frac{d^2}{2(n_1+n_2)}$, reflects the uncertainty of our estimate in the within-groups standard deviation $S_{within}$, calculated earlier.
+
+We can calculate $V_d$ for the Carroll study first:
+
+```{r Vd for Carroll study}
+Vd_Carroll <- (60+60)/(60*60) + d_Carroll^2/(2*(60+60))
+
+Vd_Carroll
+```
+
+Again, you have to be careful with brackets to ensure that the additions and multiplications etc. are down in the correct order.
+
+`d_Carroll` represents _d_ or the standardised mean difference, also known as _Cohen's d_ (you may confusingly see this called Hedges' _d_ in some books).
+
+## 3.4 Hedges' _g_ and variance for single study
+Unfortunately _d_ has a slight bias in small sample sizes, and so needs to be fixed with a correction factor _J_ to calculate _g_ or _Hedge's g_, which is a more robust measure of the standardised mean difference. Most meta-analyses use _Hedge's g_ automatically, and the correction is easy to calculate:
+
+$$J = 1 - \frac{3}{4df -1}$$
+where $df$ is the degrees of freedom used to estimate $S_{within}$, which for two independent groups is simply $n_1+n_2-2$ (see equation fo $S_{within})$). _Hedge's g_ is then easily calculated as:
+
+$$g = J . d$$
+Whilst the bias-correct variance $V_g$ is:
+$$V_g = J^2 . V_d$$
+
+We can now readily do these calculations in R for the Carroll study:
+
+```{r J and Hedges g for Carroll}
+J_Carroll <- 1 - (3/(4 * 118 - 1)) # There were 60 replicates in each T and C
+g_Carroll <- J_Carroll * d_Carroll
+Vg_Carroll <- J_Carroll^2 * Vd_Carroll
+
+J_Carroll
+g_Carroll
+Vg_Carroll
+```
+
+
+## 3.5 Vectorised calculation of Hedges' _g_ and variance for multiple studies
+Obviously, it would take a long time to calculate each of these values for all the studies separately, but again we can take advantage of R's vectorised system to calculate _J_ and _Hedge's g_ for all the studies in one go:
+
+```{r J Hedges g, Hedges Vg all studies}
+J <- 1 - (3 / (4 * (continuous_dat$T_n + continuous_dat$C_n - 2) -1))
+g <- J * d
+Vd <- (continuous_dat$T_n+continuous_dat$C_n)/(continuous_dat$T_n*continuous_dat$C_n) +
+   d^2/(2*(continuous_dat$T_n+continuous_dat$C_n))
+Vg <- J^2 * Vd
+
+cbind(J, d, g, Vd, Vg)
+```
+You can see from the above that the bias-correction values, _J_ are all near 1.0, but it is lower for the 3rd study, at `r J[3]` which has the smallest number of samples.  Values of J near to 1.0 indicate that less bias-correction is needed.
+
+## 3.5. Calculate weights for each study and overall weighted mean effect size
+Now we can assemble everything together for the actual meta-analysis. Remember that a meta-analysis is simply a weighted average of the standardised mean differences. Now that we have calculated the bias-corrected variance $V_g$ we can readily calculate the weight _W_ for an individual study:
+
+$$W = \frac{1}{V_{g}}$$
+Again, this is very simple to calculate for all the studies using R's vectorised arithmetic:
+
+```{r weights for all studies}
+W <- 1 / Vg
+cbind(continuous_dat$T_n, Vd, W)
+```
+
+Notice how the weights are related to the sample size and the variance, so for example study 4, which has 200 replicates per treatment, has a weight much higher than the others. The lowest weight is, however, given to study 4, within only 40 replicates, and the highest variance.
+
+To finish, we calculate the weighted mean, _M_, based on the sum of weights multipled by the standardised effect sizes, divided by the sum of the weights:
+
+$$M = \frac{\sum_{i=1}^{k}W_ig_i}{\sum_{i=1}^{k}W_i}$$
+This equation may look threatening at first, but it simply indicates that for each study (i = 1 to k, where k is 6 for this example) we carry out multiplications and additions.  The $\sum_{}$ sign indicates summation.  Again, the whole set of calculations can easily be done in R via vectorised arithmetic:
+
+```{r calculation of M}
+M <- sum(W * g) / sum(W)
+M
+```
+
+This gives an overall standardised mean difference, weighted for the different studies, of `r M`.
+
+Here is the forest plot that can be derived from these studies:
+
+![](Further_Effects/www/fixed_fig_14_1.png)
+
+Compare your weights `W` and Hedges' _g_ values `g` that you manually calculated with those shown here (Fig. 14.1 of Borenstein). In the next practical you will learn how to create these forest plots automatically.
