@@ -182,3 +182,167 @@ Here is the forest plot that can be derived from these studies:
 ![](Further_Effects/www/fixed_fig_14_1.png)
 
 Compare your weights `W` and Hedges' _g_ values `g` that you manually calculated with those shown here (Fig. 14.1 of Borenstein). In the next practical you will learn how to create these forest plots automatically.
+
+# 4. Working with incomplete data
+Most books on meta-analysis will give you worked examples where all the data you need for the analysis are available in a convenient format. This might be in the book, or online supplement, and you will find the means or binary counts or correlations as well as the standard deviations and sample sizes for a set of studies. This makes it much more straightforward to complete the meta-analysis at hand, once you have decided on the appropriate metric to use in your effect size.
+
+The problem is that in a "real" systematic review, the papers you collate together will be inconsistent. Some authors might give p-values and t-statistics, but be vague on sample size, or some aspect of the effects that you are trying to analyse. This website shows you how to manually fill in some of the "gaps" in the data, for an example of messy continuous and an example of gappy binary (count) data. There is not an automatic function that will do this for you, so it is a useful skill to have, to increase the number of studies that you can incorporate into your meta-analysis.
+
+Of course, sometimes no amount of clever back-transformations can help you, and you also need to be able to recognise situations where it is not possible to include the study in your meta-analysis. In this website we will focus on an incomplete dataset where means and standard deviations are only available for some studies.
+
+**Note** some equations in this section are not identical to those earlier in the schedule as approximations have to be used where data are incomplete.
+
+First, download the `cont_incomplete.csv` dataset from Canvas, save into your `Data` folder, import into RStudio via `read.csv()` into a `data.frame` called `cont_incomp_dat` and explore the data. You will see that there are 9 studies, but unfortunately only 3 of them have the complete set of data needed for analysis. Key points to note are:
+
+* `n1i` and `n2i` are sample sizes; all the studies report sample sizes; **this is important**
+* `m1i` and `m2i` are the means for the two treatments, but these are not given for every study
+* `sd1i` and `sd2i` are the standard deviations, but again not reported for every study
+* Studies 3, 4 and 6 provide all the necessary information
+* Studies 2 and 9 report the 2-sided p-value `pval` from a t-test and we know the direction of the effect positive or negative in `sign` **but** we don't know the t-statistic
+* Studies 5 and 8 report t-statistic `tval` from a t-test
+* Studies 1 and 7 report standardised mean difference `dval`, sometimes called Cohen's _d_, rather than what we are more likely to use, Hedges' _g_ which has a bias-correction for small sample sizes
+
+Whilst we are not going to use `metafor` yet for a formal meta-analysis, we will take advantage of some utility functions it has that make it simpler to handle missing data. R conventionally uses the `is.na()` function when working with missing data, but this can be cumbersome to use, especially on columns of data. In contrast, the `metafor` package as a `replmiss()` function, which replaces missing values according to an equation we provide. Therefore, before you go any further issue the command `library(metafor)` in the R Console.
+
+If you have not yet installed the package, you will need to run the command `install.packages("metafor")` first, but this is only needed once.
+
+```{r, echo=FALSE, message=FALSE}
+library(metafor)
+cont_incomp_dat <- read.csv("assemble_data/www/cont_incomplete.csv")
+```
+
+To try and "fix" our incomplete data we are going to carry out the following steps
+
+1. Calculate Hedges' _g_ for the studies with no problems
+2. Find t-statistics for studies that only give p-values
+3. Calculate _d_ effect size (**not** bias-corrected) from t-statistics
+4. Calculate Hedges' _g_ from _d_
+5. Calculate sample variance _V_
+
+## 4.1 Hedges _g_ for studies with no problems; 3, 4, 6 
+These are studies 3, 4 and 6. These are the only ones where we can easily calculate the standardised mean difference bias-corrected, i.e. the Hedges' _g_ measure of the effect size.
+
+If you have not already done so, remember to import your data from the `cont_incomplete.csv` file on Canvas into a dataframe called `cont_incomp_dat` and look at its contents before going further.
+
+This is your first use of one of the built-in functions of `metafor`, namely the `escalc()` or "effect-size calculator" function. This is very powerful, and can handle continuous mean data as in this example, count data, correlation data, and produce many different metrics of effect size. The `"SMD"` option for measure, shown below, is Hedges _g_. 
+
+```{r hedges_g}
+# Original data
+cont_incomp_dat
+
+# Calculate Hedges' g
+cont_incomp_dat <- escalc(measure="SMD", m1i=m1i, sd1i=sd1i, n1i=n1i, m2i=m2i, sd2i=sd2i, n2i=n2i, data=cont_incomp_dat)
+
+# Revised dataset just for studies 3, 4, 6
+cont_incomp_dat
+```
+
+The code **overwrites** your original incomplete dataset, filling in the calculations. Notice how it only changes things for the three studies 3, 4 and 6 where all the necessary data are available, and in the process creates two new columns:
+
+* `yi`  The effect size, here Hedges' _g_
+* `vi`  The estimated variance
+
+You may wish to go back to Section 3 of this schedule at some point and use `escalc()` rather than manual calculations. Obviously, it would have saved you a lot of time, but I wanted you to explore manual calculation first.
+
+## 4.2 Calculate t-statistics from p-values; studies 2 and 9
+Here we have a p-value, and (fortunately) we know the sample size. However, the reporting is very poor, in that whilst they have given the p-value, they do not quote the t-statistic. The t-statistic is output from many types of analysis, and is used to determine whether an estimated parameter value is significantly different from zero. Luckily, from our reading of the text of these studies, we know which treatment is bigger or smaller than the other, which we have encoded in the `sign` column. So in study 2, the second mean is bigger than the first (m1i - m2i is negative), whereas in study 9 it is greater.
+
+We need to produce an approximate estimate of the t-statistic, before we can then move on to estimate an effect size. This will give you t-statistics for studies 2 and 9; the equation being used to create the t-statistic is:
+
+$$t=s.q$$
+
+where:
+
+* $s$ = the sign (positive or negative)
+* $q$ = the quantile function. A quantile provides information on what percentage or probabilities of your data lie within a given range. You actually have this probability, and the sample size which can be used to provide the degrees of freedom. The df is the total number of samples - 2.
+
+The next bit of code looks a bit complicated, so I have split the first line over 4 lines, with 2 closing brackets, to make it clearer (the HTML version may display better than Microsoft Word which sometimes autowraps code). The key points are:
+
+* Line 1. `cont_incomp_dat$tval <-` The results of the function are going to be 9 numbers, only assigned to the `tval` column in your data frame
+* Line 1. `replmiss()` This function is from `metafor` and is used to replace missing (NA) values. It takes just 2 arguments, the first being the name of the column that contains the missing values, here `cont_incomp_dat$tval`
+* Line 1. Note that this line ends with a comma `,`  This warns R that you have not finished typing the command, because of course `replmiss` needs **two** arguments. The second argument is a column of numbers the same length as `cont_incomp_dat$tval`, i.e. 9 numbers, to use to replace the missing values
+* Line 2. This is the start of the second argument. To reduce the amount of typing needed, we are using the standard R command `with()`. This expects 2 arguments. The first is a data.frame as, here `cont_incomp_dat`, and the second a calculation using various columns in this dataframe. When you are doing a calculation with several columns you only need give the column names. 
+* Line 2. Again notice it ends in a comma `,`  Again this tells R we have not finished, because we need to give the equation for the calculation.
+* Line 3. Equation to convert p-value into a t-statistic (see below)
+* Line 4. Closing bracket for the `with` function
+* Line 5. Closing bracket for the `replmiss` function
+
+You might be wondering why we divide our p-value by 2. This is because we are back-calculating on a one-sided test (the direction is given by the `sign` column). Similarly we only want one "tail" of the t-distribution, hence we specify `lower.tail=FALSE`
+
+**Note** : Before and after running the next line of code, look at your cont_incomp_dat dataframe to observe the changes. You may want to make a backup copy of your `cont_incomp_dat` to `cont_incomp_dat_orig` just in case you make any typos.
+
+```{r calc_t}
+cont_incomp_dat$tval <- replmiss(cont_incomp_dat$tval,
+                                 with(cont_incomp_dat,
+                                      sign * qt(pval/2, df=n1i+n2i-2, lower.tail=FALSE)
+                                      )
+                                 )
+```
+
+## 4.3 Standardised mean difference _d_ from t-statistics; studies 2, 5, 8, 9
+Now that we have calculated the t-statistics for studies 2 and 9, we have four studies where we have t-statistics, sample sizes, but do not have information on the means. We can convert these to standardised mean difference _d_ values using the following equation. **Note** It is referred to as "Cohen's _d_" in Koricheva.
+
+$$d=t\sqrt{\frac{n_1 + n_2}{n_1n_2}}$$
+
+this can be rearranged to:
+
+$$d=t\sqrt{\frac{1}{n_1}+\frac{1}{n_2}}$$
+
+which is slightly easier to enter in R as fewer brackets are needed:
+
+**Note** : Before and after running the next line of code, look at your cont_incomp_dat dataframe to observe the changes. You may want to make a backup copy of your `cont_incomp_dat` to `cont_incomp_dat_orig` just in case you make any typos.
+
+```{r d_from_t}
+cont_incomp_dat$dval <- replmiss(cont_incomp_dat$dval,
+                                 with(cont_incomp_dat,
+                                      tval * sqrt(1/n1i + 1/n2i)
+                                      )
+                                 )
+```
+
+## 4.4 Convert _d_ to Hedges' _g_
+As we have already seen, the bias-corrected Hedges' _g_ is slightly better than _d_ especially for small sample sizes. So we need our _J_ correction or bias-correction factor. Recall that:
+
+$$g=Jd$$
+
+where
+
+$$J=1-\frac{3}{4(n_1+n_2-2)-1}$$
+
+again, we can use the R `replmiss` and `with` functions to make the calculations easier to setup, and store the resultant Hedges' _g_ values in column `yi` along with the data we have already calculated for studies 3, 4 and 6:
+
+**Note** : Before and after running the next line of code, look at your cont_incomp_dat dataframe to observe the changes. You may want to make a backup copy of your `cont_incomp_dat` to `cont_incomp_dat_orig` just in case you make any typos.
+
+```{r g_from_d}
+cont_incomp_dat$yi <- replmiss(cont_incomp_dat$yi,
+                               with(cont_incomp_dat,
+                                    (1 - 3/(4*(n1i+n2i-2) - 1)) * dval
+                                    )
+                               )
+```
+
+## 4.5 Finishing off: sampling variances
+We still only have the sampling variances for studies 3, 4 and 6 which were the only ones with full datasets at the start. So we will finish by completing the `vi` column for all the other studies. The equation for the sampling variance is:
+
+$$V=\frac{1}{n_1}+\frac{1}{n_2}+\frac{g^2}{2(n_1+n_2)}$$
+
+**Note** : Before and after running the next line of code, look at your cont_incomp_dat dataframe to observe the changes. You may want to make a backup copy of your `cont_incomp_dat` to `cont_incomp_dat_orig` just in case you make any typos.
+
+```{r samp_var}
+cont_incomp_dat$vi <- replmiss(cont_incomp_dat$vi,
+                               with(cont_incomp_dat,
+                                    1/n1i+ 1/n2i + yi^2/(2*(n1i+n2i))
+                                    )
+                               )
+ # Save in a new complete dataframe
+cont_completed_dat <- cont_incomp_dat
+```
+
+Have a look at your `cont_completed_dat` dataframe. Notice how we now have Hedges' _g_ and the variance for every study, so can go ahead with a meta-analysis.
+
+# 5. Where next?
+In the next practical we will explore automatic methods of calculating effect sizes for different types of data using the `metafor` package. However, dealing with missing data is often problematic and requires a manual set of calculations as we have done here. Good sources of information on this issue include:
+
+* Koricheva et al. Chapter 13
+* Borenstein Chapter 7
+* [metafor guidelines for binary data](https://www.metafor-project.org/doku.php/tips:assembling_data_or)
