@@ -1,0 +1,12 @@
+---
+title: 'Practical: manual calculations'
+author: "Roy Sanderson"
+date: "01/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
