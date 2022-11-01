@@ -5,7 +5,7 @@ subtitle: "Practical 3: Meta-analyses by hand"
 output:
   word_document:
      reference_docx: template.docx
-  pdf_document: default
+  pdf_document: 
   html_document:
     df_print: paged
 ---
